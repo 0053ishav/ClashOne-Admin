@@ -79,6 +79,10 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [savedCraftedSnapshot, setSavedCraftedSnapshot] = useState("");
+  const [savedGoblinSnapshot, setSavedGoblinSnapshot] = useState("");
+  const [expandedDefenses, setExpandedDefenses] = useState({});
   const [route, setRoute] = useState("crafted");
   const [craftedFilter, setCraftedFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -113,6 +117,10 @@ export default function App() {
   }, [craftedMetadata, event.defenses, craftedFilter, search]);
 
   const defenseEntries = Object.entries(craftedMetadata);
+  const craftedSnapshot = JSON.stringify({ metadata: craftedMetadata, event });
+  const craftedDirty = Boolean(savedCraftedSnapshot) && craftedSnapshot !== savedCraftedSnapshot;
+  const goblinDirty = Boolean(savedGoblinSnapshot) && goblin && JSON.stringify(goblin) !== savedGoblinSnapshot;
+  const notify = (message, kind = "success") => setToast({ message, kind, id: Date.now() });
   const includedCount = defenseEntries.filter(([id]) =>
     event.defenses?.includes(Number(id)),
   ).length;
@@ -130,10 +138,12 @@ export default function App() {
       ]);
       const metadata = metadataRes;
       const eventData = eventRes;
-      setCraftedMetadata(normaliseMetadata(metadata));
+      const normalizedMetadata = normaliseMetadata(metadata);
+      setCraftedMetadata(normalizedMetadata);
       setEvent(eventData);
+      setSavedCraftedSnapshot(JSON.stringify({ metadata: normalizedMetadata, event: eventData }));
     } catch {
-      alert("Failed to load Crafted data ❌");
+      notify("Could not load Crafted data. Check the API connection and retry.", "error");
     } finally {
       setFetching(false);
     }
@@ -144,7 +154,7 @@ export default function App() {
       const data = await requestJson(API_ROUTES.hammerJam.path);
       setHammerJam(data);
     } catch (error) {
-      alert(`Failed to load Hammer Jam config: ${error.message} ❌`);
+      notify(`Could not load Hammer Jam config: ${error.message}`, "error");
     }
   };
 
@@ -156,10 +166,10 @@ export default function App() {
         method: API_ROUTES.saveHammerJam.method,
                 body: JSON.stringify(hammerJam),
       });
-      alert("Hammer Jam configuration saved ✅");
+      notify("Hammer Jam configuration saved.");
       await loadHammerJam();
     } catch (error) {
-      alert(`Hammer Jam save failed: ${error.message} ❌`);
+      notify(`Hammer Jam save failed: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -169,8 +179,9 @@ export default function App() {
     try {
       const data = await requestJson(API_ROUTES.goblinConfig.path);
       setGoblin(data);
+      setSavedGoblinSnapshot(JSON.stringify(data));
     } catch {
-      alert("Failed to load Goblin config ❌");
+      notify("Could not load Goblin configuration. Check the API connection and retry.", "error");
     }
   };
 
@@ -309,6 +320,7 @@ export default function App() {
       ...prev,
       defenses: [...new Set([...(prev.defenses || []), id])],
     }));
+    setExpandedDefenses((prev) => ({ ...prev, [id]: true }));
   };
 
   const deleteDefense = (id) => {
@@ -331,6 +343,7 @@ export default function App() {
         },
       },
     }));
+    setExpandedDefenses((prev) => ({ ...prev, [defenseId]: true }));
   };
 
   const deleteModule = (defenseId, moduleId) => {
@@ -364,9 +377,10 @@ export default function App() {
           event,
         }),
       });
-      alert("Crafted metadata + event saved ✅");
+      setSavedCraftedSnapshot(JSON.stringify({ metadata: craftedMetadata, event }));
+      notify("Crafted metadata and event saved.");
     } catch (error) {
-      alert(`${error.message} ❌`);
+      notify(`Save failed: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -393,10 +407,11 @@ export default function App() {
           workForHireEvents: goblin.workForHireEvents || [],
         }),
       });
-      alert("Saved Goblin Config ✅");
+      setSavedGoblinSnapshot(JSON.stringify({ ...goblin, workForHireEvents: goblin.workForHireEvents || [] }));
+      notify("Goblin configuration saved.");
       await loadGoblin();
-    } catch {
-      alert("Save Failed ❌");
+    } catch (error) {
+      notify(`Goblin save failed: ${error.message || "Please retry."}`, "error");
     }
   };
 
@@ -508,6 +523,10 @@ export default function App() {
           </header>
 
           <main className="content">
+            {toast && <div key={toast.id} className={`toast toast-${toast.kind}`} role={toast.kind === "error" ? "alert" : "status"} aria-live={toast.kind === "error" ? "assertive" : "polite"}>
+              <span aria-hidden="true">{toast.kind === "error" ? "!" : "✓"}</span><span>{toast.message}</span>
+              <button type="button" className="toast-dismiss" onClick={() => setToast(null)} aria-label="Dismiss notification">×</button>
+            </div>}
             <nav className="mobile-nav" aria-label="Admin sections">
               <NavItem active={route === "crafted"} icon="◈" label="Crafted" onClick={() => setRoute("crafted")} />
               <NavItem active={route === "goblin"} icon="◉" label="Goblin" onClick={() => setRoute("goblin")} />
@@ -673,7 +692,7 @@ function Toggle({ checked, label, onChange }) {
   );
 }
 
-function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAddModule, onUpdateModule, onDeleteModule }) {
+function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAddModule, onUpdateModule, onDeleteModule, expanded, onToggleExpanded }) {
   const imageUrl = getCraftedImageUrl(id, 1);
   const modules = Object.entries(defense.modules || {});
 
@@ -706,12 +725,15 @@ function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAdd
         </div>
 
         <div className="defense-actions">
+          <button type="button" onClick={onToggleExpanded} className="btn btn-secondary expand-modules-button" aria-expanded={expanded} aria-controls={`modules-${id}`}>
+            <span aria-hidden="true">{expanded ? "−" : "+"}</span> {expanded ? "Hide modules" : `Show ${modules.length} modules`}
+          </button>
           <button onClick={() => onAddModule(id)} className="btn btn-secondary refresh-button">+ Module</button>
           <button onClick={() => onDelete(id)} className="btn btn-danger btn-sm">Remove from event</button>
         </div>
       </div>
 
-      <div className="modules-panel">
+      {expanded && <div className="modules-panel" id={`modules-${id}`}>
         <div className="modules-header">
           <div className="modules-title">Modules</div>
           <div className="modules-note">Resource enum values 0–8</div>
@@ -735,7 +757,7 @@ function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAdd
             ))}
           </div>
         )}
-      </div>
+      </div>}
     </article>
   );
 }
@@ -771,10 +793,11 @@ function GoblinDashboard({ goblin, setGoblin, saveGoblin, eventTimezone, setEven
               ))}
             </select>
           </Field>
-          <button onClick={saveGoblin} className="btn btn-primary">Save configuration</button>
+          <button onClick={saveGoblin} disabled={!goblinDirty} className="btn btn-primary">{goblinDirty ? "Save configuration" : "All changes saved"}</button>
         </div>
       </div>
 
+      <div className="save-state-inline" role="status"><span className={`status-dot ${goblinDirty ? "checking" : "online"}`} />{goblinDirty ? "You have unsaved changes" : "Configuration is saved"}</div>
       <div className="goblin-toggles">
         <Toggle checked={goblin.goblinBuilderEnabled} label="Goblin Builder enabled" onChange={(checked) => setGoblin({ ...goblin, goblinBuilderEnabled: checked })} />
         <Toggle checked={goblin.goblinLabEnabled} label="Goblin Lab enabled" onChange={(checked) => setGoblin({ ...goblin, goblinLabEnabled: checked })} />
