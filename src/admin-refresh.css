@@ -800,7 +800,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     min-height: 36px;
   }
   .refresh-button,
-  .theme-toggle {
+  .theme-toggle,
+  .signout-button {
     min-height: 40px;
   }
   .mobile-nav {
