@@ -850,7 +850,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     gap: 14px;
     padding: 16px;
   }
-  .event-config-grid > .xl\\:col-span-2 {
+  .event-config-grid > .xl\:col-span-2 {
     grid-column: auto;
   }
   .input {
