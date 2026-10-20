@@ -7,8 +7,10 @@ export const API_ROUTES = Object.freeze({
   craftedMetadata: { method: "GET", path: "/v2/metadata/crafted-defenses", auth: "public" },
   craftedEvent: { method: "GET", path: "/v2/events/crafted-defenses-event", auth: "public" },
   goblinConfig: { method: "GET", path: "/v2/events/goblin-config", auth: "public" },
+  hammerJam: { method: "GET", path: "/v2/events/hammer-jam", auth: "public" },
   saveCraftedBundle: { method: "POST", path: "/v2/admin/crafted-defenses", auth: "admin" },
   saveGoblinConfig: { method: "POST", path: "/v2/admin/events/goblin", auth: "admin" },
+  saveHammerJam: { method: "POST", path: "/v2/admin/events/hammer-jam", auth: "admin" },
 });
 
 export async function requestJson(path, options = {}) {
