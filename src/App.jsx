@@ -630,6 +630,8 @@ export default function App() {
                         onAddModule={addModule}
                         onUpdateModule={updateModule}
                         onDeleteModule={deleteModule}
+                        expanded={expandedDefenses[id] ?? window.matchMedia("(min-width: 901px)").matches}
+                        onToggleExpanded={() => setExpandedDefenses((prev) => ({ ...prev, [id]: !(prev[id] ?? window.matchMedia("(min-width: 901px)").matches) }))}
                       />
                     ))}
                   </div>
