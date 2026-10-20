@@ -652,7 +652,7 @@ export default function App() {
               </>
             )}
 
-            {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} dirty={goblinDirty} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
             {route === "hammerJam" && hammerJam && <><div className="save-state-inline" role="status"><span className={`status-dot ${hammerJamDirty ? "checking" : "online"}`} />{hammerJamDirty ? "You have unsaved changes" : "Configuration is saved"}</div><HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} dirty={hammerJamDirty} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} /></>}
           </main>
         </div>
@@ -773,7 +773,7 @@ function InfoCell({ label, value, wide }) {
   return <div className={`info-cell ${wide ? "wide" : ""}`}><div className="info-label">{label}</div><div className="info-value">{value}</div></div>;
 }
 
-function GoblinDashboard({ goblin, setGoblin, saveGoblin, eventTimezone, setEventTimezone }) {
+function GoblinDashboard({ goblin, setGoblin, saveGoblin, dirty, eventTimezone, setEventTimezone }) {
   return (
     <>
       <div className="page-header">
@@ -800,11 +800,11 @@ function GoblinDashboard({ goblin, setGoblin, saveGoblin, eventTimezone, setEven
               ))}
             </select>
           </Field>
-          <button onClick={saveGoblin} disabled={!goblinDirty} className="btn btn-primary">{goblinDirty ? "Save configuration" : "All changes saved"}</button>
+          <button onClick={saveGoblin} disabled={!dirty} className="btn btn-primary">{dirty ? "Save configuration" : "All changes saved"}</button>
         </div>
       </div>
 
-      <div className="save-state-inline" role="status"><span className={`status-dot ${goblinDirty ? "checking" : "online"}`} />{goblinDirty ? "You have unsaved changes" : "Configuration is saved"}</div>
+      <div className="save-state-inline" role="status"><span className={`status-dot ${dirty ? "checking" : "online"}`} />{dirty ? "You have unsaved changes" : "Configuration is saved"}</div>
       <div className="goblin-toggles">
         <Toggle checked={goblin.goblinBuilderEnabled} label="Goblin Builder enabled" onChange={(checked) => setGoblin({ ...goblin, goblinBuilderEnabled: checked })} />
         <Toggle checked={goblin.goblinLabEnabled} label="Goblin Lab enabled" onChange={(checked) => setGoblin({ ...goblin, goblinLabEnabled: checked })} />
