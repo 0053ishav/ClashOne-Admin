@@ -204,9 +204,18 @@ export default function App() {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("admin-token");
-    setToken("");
+  const logout = async () => {
+    try {
+      await requestJson(API_ROUTES.logout.path, {
+        method: API_ROUTES.logout.method,
+        headers: { "x-admin-token": token },
+      });
+    } catch {
+      // Clear the local session even if the API is unreachable.
+    } finally {
+      localStorage.removeItem("admin-token");
+      setToken("");
+    }
   };
 
   const updateDefense = (id, patch) => {
@@ -295,21 +304,14 @@ export default function App() {
   const saveCrafted = async () => {
     setLoading(true);
     try {
-      // These are separate backend writes, not a transaction.
-      await requestJson(API_ROUTES.saveCraftedMetadata.path, {
-        method: API_ROUTES.saveCraftedMetadata.method,
+      await requestJson(API_ROUTES.saveCraftedBundle.path, {
+        method: API_ROUTES.saveCraftedBundle.method,
         headers: { "x-admin-token": token },
-        body: JSON.stringify(craftedMetadata),
+        body: JSON.stringify({
+          metadata: craftedMetadata,
+          event,
+        }),
       });
-      try {
-        await requestJson(API_ROUTES.saveCraftedEvent.path, {
-          method: API_ROUTES.saveCraftedEvent.method,
-          headers: { "x-admin-token": token },
-          body: JSON.stringify(event),
-        });
-      } catch (error) {
-        throw new Error("Metadata saved, but event save failed: " + error.message + ". Reload data before retrying.");
-      }
       alert("Crafted metadata + event saved ✅");
     } catch (error) {
       alert(`${error.message} ❌`);
@@ -337,7 +339,6 @@ export default function App() {
         headers: { "x-admin-token": token },
         body: JSON.stringify({
           ...goblin,
-          version: (Number(goblin.version) || 0) + 1,
           workForHireEvents: goblin.workForHireEvents || [],
         }),
       });

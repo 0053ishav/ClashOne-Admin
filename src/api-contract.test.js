@@ -5,7 +5,9 @@ import { API_BASE_URL, API_ROUTES, requestJson } from "./api-contract.js";
 test("API contract defines the expected admin routes and methods", () => {
   assert.equal(API_ROUTES.login.method, "POST");
   assert.equal(API_ROUTES.craftedMetadata.method, "GET");
-  assert.equal(API_ROUTES.saveCraftedMetadata.method, "POST");
+  assert.equal(API_ROUTES.saveCraftedBundle.method, "POST");
+  assert.equal(API_ROUTES.saveCraftedBundle.path, "/v2/admin/crafted-defenses");
+  assert.equal(API_ROUTES.logout.path, "/v1/admin/logout");
   assert.equal(API_ROUTES.saveGoblinConfig.path, "/v2/admin/events/goblin");
   assert.ok(API_BASE_URL.startsWith("http"));
 });

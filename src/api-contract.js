@@ -3,11 +3,11 @@ export const API_BASE_URL = import.meta.env?.VITE_API_URL || "https://clashwidge
 export const API_ROUTES = Object.freeze({
   health: { method: "GET", path: "/health", auth: "public" },
   login: { method: "POST", path: "/v1/admin/login", auth: "password" },
+  logout: { method: "POST", path: "/v1/admin/logout", auth: "admin" },
   craftedMetadata: { method: "GET", path: "/v2/metadata/crafted-defenses", auth: "public" },
   craftedEvent: { method: "GET", path: "/v2/events/crafted-defenses-event", auth: "public" },
   goblinConfig: { method: "GET", path: "/v2/events/goblin-config", auth: "public" },
-  saveCraftedMetadata: { method: "POST", path: "/v2/admin/metadata/crafted-defenses", auth: "admin" },
-  saveCraftedEvent: { method: "POST", path: "/v2/admin/events/crafted-defenses", auth: "admin" },
+  saveCraftedBundle: { method: "POST", path: "/v2/admin/crafted-defenses", auth: "admin" },
   saveGoblinConfig: { method: "POST", path: "/v2/admin/events/goblin", auth: "admin" },
 });
 
