@@ -403,6 +403,7 @@ export default function App() {
   };
 
   const saveGoblin = async () => {
+    setLoading(true);
     try {
       await requestJson(API_ROUTES.saveGoblinConfig.path, {
         method: API_ROUTES.saveGoblinConfig.method,
@@ -416,6 +417,8 @@ export default function App() {
       await loadGoblin();
     } catch (error) {
       notify(`Goblin save failed: ${error.message || "Please retry."}`, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -800,7 +803,7 @@ function GoblinDashboard({ goblin, setGoblin, saveGoblin, dirty, eventTimezone, 
               ))}
             </select>
           </Field>
-          <button onClick={saveGoblin} disabled={!dirty} className="btn btn-primary">{dirty ? "Save configuration" : "All changes saved"}</button>
+          <button onClick={saveGoblin} disabled={loading || !dirty} className="btn btn-primary">{loading ? "Saving…" : dirty ? "Save configuration" : "All changes saved"}</button>
         </div>
       </div>
 
