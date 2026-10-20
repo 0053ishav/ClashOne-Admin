@@ -658,3 +658,54 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Sign-in form */
+.login-eyebrow {
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+.login-brand {
+  margin-bottom: 28px;
+}
+.login-brand .login-description {
+  max-width: 290px;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.login-field {
+  display: block;
+}
+.login-field .input {
+  min-height: 48px;
+}
+.login-error {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 12px;
+}
+.login-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+.login-footnote {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: 11px;
+  text-align: center;
+}
