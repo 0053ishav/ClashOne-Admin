@@ -254,15 +254,10 @@ export default function App() {
   };
 
   const deleteDefense = (id) => {
-    if (!window.confirm(`Delete crafted defense ${id}?`)) return;
-    setCraftedMetadata((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
+    if (!window.confirm(`Remove crafted defense ${id} from the active event? Its metadata and progression records will be retained.`)) return;
     setEvent((prev) => ({
       ...prev,
-      defenses: prev.defenses.filter((defenseId) => defenseId !== Number(id)),
+      defenses: (prev.defenses || []).filter((defenseId) => defenseId !== Number(id)),
     }));
   };
 
@@ -620,7 +615,7 @@ function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAdd
 
         <div className="defense-actions">
           <button onClick={() => onAddModule(id)} className="btn btn-secondary refresh-button">+ Module</button>
-          <button onClick={() => onDelete(id)} className="btn btn-danger btn-sm">Delete</button>
+          <button onClick={() => onDelete(id)} className="btn btn-danger btn-sm">Remove from event</button>
         </div>
       </div>
 
