@@ -74,7 +74,8 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState("checking");
   const [lastHealthCheck, setLastHealthCheck] = useState(null);
   const [theme, setTheme] = useState(localStorage.getItem("admin-theme") || "light");
-  const [token, setToken] = useState(localStorage.getItem("admin-token") || "");
+  const [token, setToken] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [route, setRoute] = useState("crafted");
   const [craftedFilter, setCraftedFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -150,8 +151,7 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.saveHammerJam.path, {
         method: API_ROUTES.saveHammerJam.method,
-        headers: { "x-admin-token": token },
-        body: JSON.stringify(hammerJam),
+                body: JSON.stringify(hammerJam),
       });
       alert("Hammer Jam configuration saved ✅");
       await loadHammerJam();
@@ -170,6 +170,25 @@ export default function App() {
       alert("Failed to load Goblin config ❌");
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    requestJson(API_ROUTES.session.path)
+      .then(() => {
+        if (!cancelled) setToken(true);
+      })
+      .catch(() => {
+        if (!cancelled) setToken(false);
+      })
+      .finally(() => {
+        if (!cancelled) setAuthChecking(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -223,12 +242,11 @@ export default function App() {
     const password = prompt("Enter admin password");
     if (!password) return;
     try {
-      const data = await requestJson(API_ROUTES.login.path, {
+      await requestJson(API_ROUTES.login.path, {
         method: API_ROUTES.login.method,
         body: JSON.stringify({ password }),
       });
-      localStorage.setItem("admin-token", data.token);
-      setToken(data.token);
+      setToken(true);
     } catch {
       alert("Login failed ❌");
     }
@@ -238,13 +256,11 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.logout.path, {
         method: API_ROUTES.logout.method,
-        headers: { "x-admin-token": token },
       });
     } catch {
       // Clear the local session even if the API is unreachable.
     } finally {
-      localStorage.removeItem("admin-token");
-      setToken("");
+      setToken(false);
     }
   };
 
@@ -331,8 +347,7 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.saveCraftedBundle.path, {
         method: API_ROUTES.saveCraftedBundle.method,
-        headers: { "x-admin-token": token },
-        body: JSON.stringify({
+                body: JSON.stringify({
           metadata: craftedMetadata,
           event,
         }),
@@ -361,8 +376,7 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.saveGoblinConfig.path, {
         method: API_ROUTES.saveGoblinConfig.method,
-        headers: { "x-admin-token": token },
-        body: JSON.stringify({
+                body: JSON.stringify({
           ...goblin,
           workForHireEvents: goblin.workForHireEvents || [],
         }),
@@ -373,6 +387,20 @@ export default function App() {
       alert("Save Failed ❌");
     }
   };
+
+  if (authChecking) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <div className="login-brand">
+            <div className="login-brand-icon">⚔</div>
+            <h1 className="login-title">Clash One</h1>
+            <p className="page-header-description">Checking admin session…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!token) {
     return (
