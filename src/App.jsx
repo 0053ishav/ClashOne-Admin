@@ -76,6 +76,9 @@ export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem("admin-theme") || "light");
   const [token, setToken] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [route, setRoute] = useState("crafted");
   const [craftedFilter, setCraftedFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -238,17 +241,26 @@ export default function App() {
     if (token && route === "hammerJam") loadHammerJam();
   }, [token, route]);
 
-  const login = async () => {
-    const password = prompt("Enter admin password");
-    if (!password) return;
+  const login = async (event) => {
+    event.preventDefault();
+    if (!loginPassword.trim()) {
+      setLoginError("Enter your admin password to continue.");
+      return;
+    }
+
+    setLoginLoading(true);
+    setLoginError("");
     try {
       await requestJson(API_ROUTES.login.path, {
         method: API_ROUTES.login.method,
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: loginPassword }),
       });
+      setLoginPassword("");
       setToken(true);
-    } catch {
-      alert("Login failed ❌");
+    } catch (error) {
+      setLoginError(error.message || "Unable to sign in. Please try again.");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -407,13 +419,32 @@ export default function App() {
       <div className="login-page">
         <div className="login-card">
           <div className="login-brand">
-            <div className="login-brand-icon">⚔</div>
-            <h1 className="login-title">Clash One</h1>
-            <p className="page-header-description">Internal admin console</p>
+            <div className="login-brand-icon" aria-hidden="true">⚔</div>
+            <p className="login-eyebrow">CLASH ONE / INTERNAL TOOLS</p>
+            <h1 className="login-title">Welcome back</h1>
+            <p className="login-description">Sign in to manage game data and live event configuration.</p>
           </div>
-          <button onClick={login} className="btn btn-primary login-submit">
-            Sign in
-          </button>
+          <form onSubmit={login} className="login-form">
+            <label className="login-field">
+              <span className="field-label">Admin password</span>
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                autoFocus
+                required
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="Enter admin password"
+                className="input"
+              />
+            </label>
+            {loginError && <p className="login-error" role="alert">{loginError}</p>}
+            <button type="submit" disabled={loginLoading || !loginPassword.trim()} className="btn btn-primary login-submit">
+              {loginLoading ? "Signing in…" : "Sign in to console"}
+            </button>
+          </form>
+          <p className="login-footnote">Restricted access · Authorized administrators only</p>
         </div>
       </div>
     );
