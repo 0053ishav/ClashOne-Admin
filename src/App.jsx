@@ -655,7 +655,7 @@ export default function App() {
               </>
             )}
 
-            {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} dirty={goblinDirty} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} dirty={goblinDirty} loading={loading} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
             {route === "hammerJam" && hammerJam && <><div className="save-state-inline" role="status"><span className={`status-dot ${hammerJamDirty ? "checking" : "online"}`} />{hammerJamDirty ? "You have unsaved changes" : "Configuration is saved"}</div><HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} dirty={hammerJamDirty} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} /></>}
           </main>
         </div>
@@ -776,7 +776,7 @@ function InfoCell({ label, value, wide }) {
   return <div className={`info-cell ${wide ? "wide" : ""}`}><div className="info-label">{label}</div><div className="info-value">{value}</div></div>;
 }
 
-function GoblinDashboard({ goblin, setGoblin, saveGoblin, dirty, eventTimezone, setEventTimezone }) {
+function GoblinDashboard({ goblin, setGoblin, saveGoblin, dirty, loading, eventTimezone, setEventTimezone }) {
   return (
     <>
       <div className="page-header">
