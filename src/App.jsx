@@ -508,11 +508,11 @@ export default function App() {
           </header>
 
           <main className="content">
-            <div className="mobile-nav">
-              <NavItem active={route === "crafted"} label="Crafted" onClick={() => setRoute("crafted")} />
-              <NavItem active={route === "goblin"} label="Goblin" onClick={() => setRoute("goblin")} />
-              <NavItem active={route === "hammerJam"} label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
-            </div>
+            <nav className="mobile-nav" aria-label="Admin sections">
+              <NavItem active={route === "crafted"} icon="◈" label="Crafted" onClick={() => setRoute("crafted")} />
+              <NavItem active={route === "goblin"} icon="◉" label="Goblin" onClick={() => setRoute("goblin")} />
+              <NavItem active={route === "hammerJam"} icon="⌁" label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
+            </nav>
 
             {route === "crafted" && (
               <>
