@@ -475,9 +475,6 @@ export default function App() {
                 <span className="status-dot online" /> Production
               </div>
             </div>
-            <button onClick={logout} className="sidebar-signout">
-              Sign out
-            </button>
           </div>
         </aside>
 
@@ -502,6 +499,9 @@ export default function App() {
                 <button onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")} className="theme-toggle" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
                   <span>{theme === "dark" ? "☀" : "☾"}</span>
                   <span>{theme === "dark" ? "Light" : "Dark"}</span>
+                </button>
+                <button onClick={logout} className="btn btn-secondary signout-button">
+                  Sign out
                 </button>
               </div>
             </div>
