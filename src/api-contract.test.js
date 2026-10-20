@@ -9,6 +9,10 @@ test("API contract defines the expected admin routes and methods", () => {
   assert.equal(API_ROUTES.saveCraftedBundle.path, "/v2/admin/crafted-defenses");
   assert.equal(API_ROUTES.logout.path, "/v1/admin/logout");
   assert.equal(API_ROUTES.saveGoblinConfig.path, "/v2/admin/events/goblin");
+  assert.equal(API_ROUTES.hammerJam.method, "GET");
+  assert.equal(API_ROUTES.hammerJam.path, "/v2/events/hammer-jam");
+  assert.equal(API_ROUTES.saveHammerJam.method, "POST");
+  assert.equal(API_ROUTES.saveHammerJam.path, "/v2/admin/events/hammer-jam");
   assert.ok(API_BASE_URL.startsWith("http"));
 });
 
