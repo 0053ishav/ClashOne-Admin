@@ -1006,3 +1006,139 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     padding: 26px 20px;
   }
 }
+
+
+/* Operational feedback: clear save state, non-blocking feedback, and disclosure controls. */
+.toast {
+  position: fixed;
+  z-index: 100;
+  top: calc(var(--topbar-height, 64px) + 14px);
+  right: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 13px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-h);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.toast > span:first-child {
+  display: grid;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--success-bg, var(--surface-2));
+  color: var(--success);
+  font-weight: 800;
+}
+.toast-error > span:first-child {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.toast-dismiss {
+  margin-left: auto;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+.environment-hint {
+  margin-top: 5px;
+  max-width: 190px;
+  color: var(--text-subtle);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.save-status,
+.save-state-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.save-status {
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.save-status.is-dirty,
+.save-state-inline:has(.status-dot.checking) {
+  color: var(--warning, #b7791f);
+}
+.expand-modules-button {
+  min-height: 38px;
+  white-space: nowrap;
+}
+.defense-actions {
+  flex-wrap: wrap;
+}
+.save-button:disabled,
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+  transform: none;
+}
+.save-state-inline {
+  margin: 0 0 12px;
+  padding: 0 2px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  .toast {
+    top: 12px;
+    right: 12px;
+  }
+  .save-bar {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+  .save-status {
+    flex: 1 1 100%;
+    padding: 4px 5px;
+  }
+  .expand-modules-button {
+    flex: 1 1 100%;
+  }
+  .defense-actions > .btn {
+    min-height: 42px;
+  }
+  .topbar-actions > button {
+    min-height: 40px;
+  }
+}
+@media (max-width: 420px) {
+  .toast {
+    width: calc(100vw - 20px);
+    right: 10px;
+    top: 10px;
+    padding: 12px;
+  }
+  .save-status {
+    font-size: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .expand-modules-button {
+    transition: none !important;
+  }
+}
