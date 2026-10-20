@@ -12,7 +12,7 @@ const VILLAGES = [
   { value: "builderBase", label: "Builder Base" },
 ];
 
-export default function HammerJamDashboard({ config, setConfig, saveConfig, loading, eventTimezone, setEventTimezone }) {
+export default function HammerJamDashboard({ config, setConfig, saveConfig, loading, dirty, eventTimezone, setEventTimezone }) {
   const hammerJam = config.hammerJam || {};
   const update = (patch) => setConfig((current) => ({
     ...current,
@@ -50,7 +50,7 @@ export default function HammerJamDashboard({ config, setConfig, saveConfig, load
               <option value="IST">IST (India) · UTC+05:30</option>
             </select>
           </Field>
-          <button onClick={saveConfig} disabled={loading} className="btn btn-primary">{loading ? "Saving…" : "Save configuration"}</button>
+          <button onClick={saveConfig} disabled={loading || !dirty} className="btn btn-primary">{loading ? "Saving…" : dirty ? "Save configuration" : "All changes saved"}</button>
         </div>
       </div>
 
