@@ -437,7 +437,7 @@ export default function App() {
                   <span className={`status-dot ${apiStatus}`} />
                   <span>{apiStatus === "checking" ? "Checking API…" : apiStatus === "online" ? "API online" : "API offline"}</span>
                 </div>
-                <button onClick={() => { checkApiHealth(); route === "crafted" ? loadCrafted() : loadGoblin(); }} className="btn btn-secondary refresh-button">
+                <button onClick={() => { checkApiHealth(); route === "crafted" ? loadCrafted() : route === "goblin" ? loadGoblin() : loadHammerJam(); }} className="btn btn-secondary refresh-button">
                   ↻ Refresh
                 </button>
                 <button onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")} className="theme-toggle" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
