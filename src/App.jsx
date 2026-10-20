@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResourceType } from "./types/resource";
 import { API_BASE_URL, API_ROUTES, requestJson } from "./api-contract";
+import HammerJamDashboard from "./HammerJamDashboard";
 
 const CDN_URL = "https://cdn.clashwidget.online";
 const CRAFTED_PATH = "/v2/crafted";
@@ -79,6 +80,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [eventTimezone, setEventTimezone] = useState(localStorage.getItem("admin-timezone") || "IST");
   const [goblin, setGoblin] = useState(null);
+  const [hammerJam, setHammerJam] = useState(null);
   const [craftedMetadata, setCraftedMetadata] = useState({});
   const [event, setEvent] = useState({
     version: "",
@@ -130,6 +132,33 @@ export default function App() {
       alert("Failed to load Crafted data ❌");
     } finally {
       setFetching(false);
+    }
+  };
+
+  const loadHammerJam = async () => {
+    try {
+      const data = await requestJson(API_ROUTES.hammerJam.path);
+      setHammerJam(data);
+    } catch (error) {
+      alert(`Failed to load Hammer Jam config: ${error.message} ❌`);
+    }
+  };
+
+  const saveHammerJam = async () => {
+    if (!hammerJam) return;
+    setLoading(true);
+    try {
+      await requestJson(API_ROUTES.saveHammerJam.path, {
+        method: API_ROUTES.saveHammerJam.method,
+        headers: { "x-admin-token": token },
+        body: JSON.stringify(hammerJam),
+      });
+      alert("Hammer Jam configuration saved ✅");
+      await loadHammerJam();
+    } catch (error) {
+      alert(`Hammer Jam save failed: ${error.message} ❌`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -187,6 +216,7 @@ export default function App() {
 
   useEffect(() => {
     if (token && route === "goblin") loadGoblin();
+    if (token && route === "hammerJam") loadHammerJam();
   }, [token, route]);
 
   const login = async () => {
@@ -376,6 +406,7 @@ export default function App() {
           <nav className="sidebar-content">
             <NavItem active={route === "crafted"} icon="◈" label="Crafted" onClick={() => setRoute("crafted")} />
             <NavItem active={route === "goblin"} icon="◉" label="Goblin" onClick={() => setRoute("goblin")} />
+            <NavItem active={route === "hammerJam"} icon="⌁" label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
           </nav>
 
           <div className="sidebar-footer">
@@ -397,7 +428,7 @@ export default function App() {
               <div className="topbar-brand">
                 <div className="mobile-brand-icon">C</div>
                 <div>
-                  <div className="section-title">{route === "crafted" ? "Crafted Defenses" : "Goblin"}</div>
+                  <div className="section-title">{route === "crafted" ? "Crafted Defenses" : route === "goblin" ? "Goblin" : "Hammer Jam"}</div>
                   <div className="topbar-subtitle">Clash One data administration</div>
                 </div>
               </div>
@@ -421,6 +452,7 @@ export default function App() {
             <div className="mobile-nav">
               <NavItem active={route === "crafted"} label="Crafted" onClick={() => setRoute("crafted")} />
               <NavItem active={route === "goblin"} label="Goblin" onClick={() => setRoute("goblin")} />
+              <NavItem active={route === "hammerJam"} label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
             </div>
 
             {route === "crafted" && (
@@ -536,6 +568,7 @@ export default function App() {
             )}
 
             {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "hammerJam" && hammerJam && <HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
           </main>
         </div>
       </div>
