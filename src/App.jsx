@@ -337,7 +337,7 @@ export default function App() {
         headers: { "x-admin-token": token },
         body: JSON.stringify({
           ...goblin,
-          // Version increments must be performed by the backend.
+          version: (Number(goblin.version) || 0) + 1,
           workForHireEvents: goblin.workForHireEvents || [],
         }),
       });
