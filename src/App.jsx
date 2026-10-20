@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResourceType } from "./types/resource";
 import { API_BASE_URL, API_ROUTES, requestJson } from "./api-contract";
+import HammerJamDashboard from "./HammerJamDashboard";
 
 const CDN_URL = "https://cdn.clashwidget.online";
 const CRAFTED_PATH = "/v2/crafted";
@@ -73,12 +74,14 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState("checking");
   const [lastHealthCheck, setLastHealthCheck] = useState(null);
   const [theme, setTheme] = useState(localStorage.getItem("admin-theme") || "light");
-  const [token, setToken] = useState(localStorage.getItem("admin-token") || "");
+  const [token, setToken] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [route, setRoute] = useState("crafted");
   const [craftedFilter, setCraftedFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [eventTimezone, setEventTimezone] = useState(localStorage.getItem("admin-timezone") || "IST");
   const [goblin, setGoblin] = useState(null);
+  const [hammerJam, setHammerJam] = useState(null);
   const [craftedMetadata, setCraftedMetadata] = useState({});
   const [event, setEvent] = useState({
     version: "",
@@ -133,6 +136,32 @@ export default function App() {
     }
   };
 
+  const loadHammerJam = async () => {
+    try {
+      const data = await requestJson(API_ROUTES.hammerJam.path);
+      setHammerJam(data);
+    } catch (error) {
+      alert(`Failed to load Hammer Jam config: ${error.message} ❌`);
+    }
+  };
+
+  const saveHammerJam = async () => {
+    if (!hammerJam) return;
+    setLoading(true);
+    try {
+      await requestJson(API_ROUTES.saveHammerJam.path, {
+        method: API_ROUTES.saveHammerJam.method,
+                body: JSON.stringify(hammerJam),
+      });
+      alert("Hammer Jam configuration saved ✅");
+      await loadHammerJam();
+    } catch (error) {
+      alert(`Hammer Jam save failed: ${error.message} ❌`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadGoblin = async () => {
     try {
       const data = await requestJson(API_ROUTES.goblinConfig.path);
@@ -141,6 +170,25 @@ export default function App() {
       alert("Failed to load Goblin config ❌");
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    requestJson(API_ROUTES.session.path)
+      .then(() => {
+        if (!cancelled) setToken(true);
+      })
+      .catch(() => {
+        if (!cancelled) setToken(false);
+      })
+      .finally(() => {
+        if (!cancelled) setAuthChecking(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -187,18 +235,18 @@ export default function App() {
 
   useEffect(() => {
     if (token && route === "goblin") loadGoblin();
+    if (token && route === "hammerJam") loadHammerJam();
   }, [token, route]);
 
   const login = async () => {
     const password = prompt("Enter admin password");
     if (!password) return;
     try {
-      const data = await requestJson(API_ROUTES.login.path, {
+      await requestJson(API_ROUTES.login.path, {
         method: API_ROUTES.login.method,
         body: JSON.stringify({ password }),
       });
-      localStorage.setItem("admin-token", data.token);
-      setToken(data.token);
+      setToken(true);
     } catch {
       alert("Login failed ❌");
     }
@@ -208,13 +256,11 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.logout.path, {
         method: API_ROUTES.logout.method,
-        headers: { "x-admin-token": token },
       });
     } catch {
       // Clear the local session even if the API is unreachable.
     } finally {
-      localStorage.removeItem("admin-token");
-      setToken("");
+      setToken(false);
     }
   };
 
@@ -301,8 +347,7 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.saveCraftedBundle.path, {
         method: API_ROUTES.saveCraftedBundle.method,
-        headers: { "x-admin-token": token },
-        body: JSON.stringify({
+                body: JSON.stringify({
           metadata: craftedMetadata,
           event,
         }),
@@ -331,8 +376,7 @@ export default function App() {
     try {
       await requestJson(API_ROUTES.saveGoblinConfig.path, {
         method: API_ROUTES.saveGoblinConfig.method,
-        headers: { "x-admin-token": token },
-        body: JSON.stringify({
+                body: JSON.stringify({
           ...goblin,
           workForHireEvents: goblin.workForHireEvents || [],
         }),
@@ -343,6 +387,20 @@ export default function App() {
       alert("Save Failed ❌");
     }
   };
+
+  if (authChecking) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <div className="login-brand">
+            <div className="login-brand-icon">⚔</div>
+            <h1 className="login-title">Clash One</h1>
+            <p className="page-header-description">Checking admin session…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!token) {
     return (
@@ -376,6 +434,7 @@ export default function App() {
           <nav className="sidebar-content">
             <NavItem active={route === "crafted"} icon="◈" label="Crafted" onClick={() => setRoute("crafted")} />
             <NavItem active={route === "goblin"} icon="◉" label="Goblin" onClick={() => setRoute("goblin")} />
+            <NavItem active={route === "hammerJam"} icon="⌁" label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
           </nav>
 
           <div className="sidebar-footer">
@@ -397,7 +456,7 @@ export default function App() {
               <div className="topbar-brand">
                 <div className="mobile-brand-icon">C</div>
                 <div>
-                  <div className="section-title">{route === "crafted" ? "Crafted Defenses" : "Goblin"}</div>
+                  <div className="section-title">{route === "crafted" ? "Crafted Defenses" : route === "goblin" ? "Goblin" : "Hammer Jam"}</div>
                   <div className="topbar-subtitle">Clash One data administration</div>
                 </div>
               </div>
@@ -406,7 +465,7 @@ export default function App() {
                   <span className={`status-dot ${apiStatus}`} />
                   <span>{apiStatus === "checking" ? "Checking API…" : apiStatus === "online" ? "API online" : "API offline"}</span>
                 </div>
-                <button onClick={() => { checkApiHealth(); route === "crafted" ? loadCrafted() : loadGoblin(); }} className="btn btn-secondary refresh-button">
+                <button onClick={() => { checkApiHealth(); route === "crafted" ? loadCrafted() : route === "goblin" ? loadGoblin() : loadHammerJam(); }} className="btn btn-secondary refresh-button">
                   ↻ Refresh
                 </button>
                 <button onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")} className="theme-toggle" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
@@ -421,6 +480,7 @@ export default function App() {
             <div className="mobile-nav">
               <NavItem active={route === "crafted"} label="Crafted" onClick={() => setRoute("crafted")} />
               <NavItem active={route === "goblin"} label="Goblin" onClick={() => setRoute("goblin")} />
+              <NavItem active={route === "hammerJam"} label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
             </div>
 
             {route === "crafted" && (
@@ -536,6 +596,7 @@ export default function App() {
             )}
 
             {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "hammerJam" && hammerJam && <HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
           </main>
         </div>
       </div>

@@ -1166,3 +1166,15 @@ p {
   color: var(--text-subtle);
   font-size: 9px;
 }
+
+
+.hammer-jam-card {
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.hammer-jam-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 16px;
+}
