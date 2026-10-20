@@ -76,6 +76,14 @@ export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem("admin-theme") || "light");
   const [token, setToken] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [savedCraftedSnapshot, setSavedCraftedSnapshot] = useState("");
+  const [savedGoblinSnapshot, setSavedGoblinSnapshot] = useState("");
+  const [savedHammerJamSnapshot, setSavedHammerJamSnapshot] = useState("");
+  const [expandedDefenses, setExpandedDefenses] = useState({});
   const [route, setRoute] = useState("crafted");
   const [craftedFilter, setCraftedFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -110,6 +118,11 @@ export default function App() {
   }, [craftedMetadata, event.defenses, craftedFilter, search]);
 
   const defenseEntries = Object.entries(craftedMetadata);
+  const craftedSnapshot = JSON.stringify({ metadata: craftedMetadata, event });
+  const craftedDirty = Boolean(savedCraftedSnapshot) && craftedSnapshot !== savedCraftedSnapshot;
+  const goblinDirty = Boolean(savedGoblinSnapshot) && goblin && JSON.stringify(goblin) !== savedGoblinSnapshot;
+  const hammerJamDirty = Boolean(savedHammerJamSnapshot) && hammerJam && JSON.stringify(hammerJam) !== savedHammerJamSnapshot;
+  const notify = (message, kind = "success") => setToast({ message, kind, id: Date.now() });
   const includedCount = defenseEntries.filter(([id]) =>
     event.defenses?.includes(Number(id)),
   ).length;
@@ -127,10 +140,12 @@ export default function App() {
       ]);
       const metadata = metadataRes;
       const eventData = eventRes;
-      setCraftedMetadata(normaliseMetadata(metadata));
+      const normalizedMetadata = normaliseMetadata(metadata);
+      setCraftedMetadata(normalizedMetadata);
       setEvent(eventData);
+      setSavedCraftedSnapshot(JSON.stringify({ metadata: normalizedMetadata, event: eventData }));
     } catch {
-      alert("Failed to load Crafted data ❌");
+      notify("Could not load Crafted data. Check the API connection and retry.", "error");
     } finally {
       setFetching(false);
     }
@@ -140,8 +155,9 @@ export default function App() {
     try {
       const data = await requestJson(API_ROUTES.hammerJam.path);
       setHammerJam(data);
+      setSavedHammerJamSnapshot(JSON.stringify(data));
     } catch (error) {
-      alert(`Failed to load Hammer Jam config: ${error.message} ❌`);
+      notify(`Could not load Hammer Jam config: ${error.message}`, "error");
     }
   };
 
@@ -153,10 +169,11 @@ export default function App() {
         method: API_ROUTES.saveHammerJam.method,
                 body: JSON.stringify(hammerJam),
       });
-      alert("Hammer Jam configuration saved ✅");
+      setSavedHammerJamSnapshot(JSON.stringify(hammerJam));
+      notify("Hammer Jam configuration saved.");
       await loadHammerJam();
     } catch (error) {
-      alert(`Hammer Jam save failed: ${error.message} ❌`);
+      notify(`Hammer Jam save failed: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -166,8 +183,9 @@ export default function App() {
     try {
       const data = await requestJson(API_ROUTES.goblinConfig.path);
       setGoblin(data);
+      setSavedGoblinSnapshot(JSON.stringify(data));
     } catch {
-      alert("Failed to load Goblin config ❌");
+      notify("Could not load Goblin configuration. Check the API connection and retry.", "error");
     }
   };
 
@@ -238,17 +256,26 @@ export default function App() {
     if (token && route === "hammerJam") loadHammerJam();
   }, [token, route]);
 
-  const login = async () => {
-    const password = prompt("Enter admin password");
-    if (!password) return;
+  const login = async (event) => {
+    event.preventDefault();
+    if (!loginPassword.trim()) {
+      setLoginError("Enter your admin password to continue.");
+      return;
+    }
+
+    setLoginLoading(true);
+    setLoginError("");
     try {
       await requestJson(API_ROUTES.login.path, {
         method: API_ROUTES.login.method,
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: loginPassword }),
       });
+      setLoginPassword("");
       setToken(true);
-    } catch {
-      alert("Login failed ❌");
+    } catch (error) {
+      setLoginError(error.message || "Unable to sign in. Please try again.");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -297,6 +324,7 @@ export default function App() {
       ...prev,
       defenses: [...new Set([...(prev.defenses || []), id])],
     }));
+    setExpandedDefenses((prev) => ({ ...prev, [id]: true }));
   };
 
   const deleteDefense = (id) => {
@@ -319,6 +347,7 @@ export default function App() {
         },
       },
     }));
+    setExpandedDefenses((prev) => ({ ...prev, [defenseId]: true }));
   };
 
   const deleteModule = (defenseId, moduleId) => {
@@ -352,9 +381,10 @@ export default function App() {
           event,
         }),
       });
-      alert("Crafted metadata + event saved ✅");
+      setSavedCraftedSnapshot(JSON.stringify({ metadata: craftedMetadata, event }));
+      notify("Crafted metadata and event saved.");
     } catch (error) {
-      alert(`${error.message} ❌`);
+      notify(`Save failed: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -373,6 +403,7 @@ export default function App() {
   };
 
   const saveGoblin = async () => {
+    setLoading(true);
     try {
       await requestJson(API_ROUTES.saveGoblinConfig.path, {
         method: API_ROUTES.saveGoblinConfig.method,
@@ -381,10 +412,13 @@ export default function App() {
           workForHireEvents: goblin.workForHireEvents || [],
         }),
       });
-      alert("Saved Goblin Config ✅");
+      setSavedGoblinSnapshot(JSON.stringify({ ...goblin, workForHireEvents: goblin.workForHireEvents || [] }));
+      notify("Goblin configuration saved.");
       await loadGoblin();
-    } catch {
-      alert("Save Failed ❌");
+    } catch (error) {
+      notify(`Goblin save failed: ${error.message || "Please retry."}`, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -407,13 +441,32 @@ export default function App() {
       <div className="login-page">
         <div className="login-card">
           <div className="login-brand">
-            <div className="login-brand-icon">⚔</div>
-            <h1 className="login-title">Clash One</h1>
-            <p className="page-header-description">Internal admin console</p>
+            <div className="login-brand-icon" aria-hidden="true">⚔</div>
+            <p className="login-eyebrow">CLASH ONE / INTERNAL TOOLS</p>
+            <h1 className="login-title">Welcome back</h1>
+            <p className="login-description">Sign in to manage game data and live event configuration.</p>
           </div>
-          <button onClick={login} className="btn btn-primary login-submit">
-            Sign in
-          </button>
+          <form onSubmit={login} className="login-form">
+            <label className="login-field">
+              <span className="field-label">Admin password</span>
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                autoFocus
+                required
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="Enter admin password"
+                className="input"
+              />
+            </label>
+            {loginError && <p className="login-error" role="alert">{loginError}</p>}
+            <button type="submit" disabled={loginLoading || !loginPassword.trim()} className="btn btn-primary login-submit">
+              {loginLoading ? "Signing in…" : "Sign in to console"}
+            </button>
+          </form>
+          <p className="login-footnote">Restricted access · Authorized administrators only</p>
         </div>
       </div>
     );
@@ -439,14 +492,11 @@ export default function App() {
 
           <div className="sidebar-footer">
             <div className="environment-card">
-              <div className="environment-label">Environment</div>
+              <div className="environment-label">API connection</div>
               <div className="environment-status">
-                <span className="status-dot online" /> Production
+                <span className={`status-dot ${apiStatus}`} /> {apiStatus === "checking" ? "Checking" : apiStatus === "online" ? "Reachable" : "Unavailable"}
               </div>
             </div>
-            <button onClick={logout} className="sidebar-signout">
-              Sign out
-            </button>
           </div>
         </aside>
 
@@ -472,16 +522,23 @@ export default function App() {
                   <span>{theme === "dark" ? "☀" : "☾"}</span>
                   <span>{theme === "dark" ? "Light" : "Dark"}</span>
                 </button>
+                <button onClick={logout} className="btn btn-secondary signout-button">
+                  Sign out
+                </button>
               </div>
             </div>
           </header>
 
           <main className="content">
-            <div className="mobile-nav">
-              <NavItem active={route === "crafted"} label="Crafted" onClick={() => setRoute("crafted")} />
-              <NavItem active={route === "goblin"} label="Goblin" onClick={() => setRoute("goblin")} />
-              <NavItem active={route === "hammerJam"} label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
-            </div>
+            {toast && <div key={toast.id} className={`toast toast-${toast.kind}`} role={toast.kind === "error" ? "alert" : "status"} aria-live={toast.kind === "error" ? "assertive" : "polite"}>
+              <span aria-hidden="true">{toast.kind === "error" ? "!" : "✓"}</span><span>{toast.message}</span>
+              <button type="button" className="toast-dismiss" onClick={() => setToast(null)} aria-label="Dismiss notification">×</button>
+            </div>}
+            <nav className="mobile-nav" aria-label="Admin sections">
+              <NavItem active={route === "crafted"} icon="◈" label="Crafted" onClick={() => setRoute("crafted")} />
+              <NavItem active={route === "goblin"} icon="◉" label="Goblin" onClick={() => setRoute("goblin")} />
+              <NavItem active={route === "hammerJam"} icon="⌁" label="Hammer Jam" onClick={() => setRoute("hammerJam")} />
+            </nav>
 
             {route === "crafted" && (
               <>
@@ -580,6 +637,8 @@ export default function App() {
                         onAddModule={addModule}
                         onUpdateModule={updateModule}
                         onDeleteModule={deleteModule}
+                        expanded={expandedDefenses[id] ?? window.matchMedia("(min-width: 901px)").matches}
+                        onToggleExpanded={() => setExpandedDefenses((prev) => ({ ...prev, [id]: !(prev[id] ?? window.matchMedia("(min-width: 901px)").matches) }))}
                       />
                     ))}
                   </div>
@@ -587,7 +646,8 @@ export default function App() {
 
                 <div className="save-container">
                   <div className="save-bar">
-                    <button onClick={saveCrafted} disabled={loading} className="btn btn-primary save-button">
+                    <div className={`save-status ${craftedDirty ? "is-dirty" : "is-clean"}`} role="status"><span className={`status-dot ${craftedDirty ? "checking" : "online"}`} />{craftedDirty ? "Unsaved changes" : savedCraftedSnapshot ? "All changes saved" : "Loading data"}</div>
+                    <button onClick={saveCrafted} disabled={loading || !craftedDirty} className="btn btn-primary save-button">
                       {loading ? "Saving…" : "Save changes"}
                     </button>
                   </div>
@@ -595,8 +655,8 @@ export default function App() {
               </>
             )}
 
-            {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
-            {route === "hammerJam" && hammerJam && <HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} dirty={goblinDirty} loading={loading} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "hammerJam" && hammerJam && <><div className="save-state-inline" role="status"><span className={`status-dot ${hammerJamDirty ? "checking" : "online"}`} />{hammerJamDirty ? "You have unsaved changes" : "Configuration is saved"}</div><HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} dirty={hammerJamDirty} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} /></>}
           </main>
         </div>
       </div>
@@ -642,7 +702,7 @@ function Toggle({ checked, label, onChange }) {
   );
 }
 
-function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAddModule, onUpdateModule, onDeleteModule }) {
+function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAddModule, onUpdateModule, onDeleteModule, expanded, onToggleExpanded }) {
   const imageUrl = getCraftedImageUrl(id, 1);
   const modules = Object.entries(defense.modules || {});
 
@@ -675,12 +735,15 @@ function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAdd
         </div>
 
         <div className="defense-actions">
+          <button type="button" onClick={onToggleExpanded} className="btn btn-secondary expand-modules-button" aria-expanded={expanded} aria-controls={`modules-${id}`}>
+            <span aria-hidden="true">{expanded ? "−" : "+"}</span> {expanded ? "Hide modules" : `Show ${modules.length} modules`}
+          </button>
           <button onClick={() => onAddModule(id)} className="btn btn-secondary refresh-button">+ Module</button>
           <button onClick={() => onDelete(id)} className="btn btn-danger btn-sm">Remove from event</button>
         </div>
       </div>
 
-      <div className="modules-panel">
+      {expanded && <div className="modules-panel" id={`modules-${id}`}>
         <div className="modules-header">
           <div className="modules-title">Modules</div>
           <div className="modules-note">Resource enum values 0–8</div>
@@ -704,7 +767,7 @@ function DefenseRow({ id, defense, selected, onUpdate, onDelete, onToggle, onAdd
             ))}
           </div>
         )}
-      </div>
+      </div>}
     </article>
   );
 }
@@ -713,7 +776,7 @@ function InfoCell({ label, value, wide }) {
   return <div className={`info-cell ${wide ? "wide" : ""}`}><div className="info-label">{label}</div><div className="info-value">{value}</div></div>;
 }
 
-function GoblinDashboard({ goblin, setGoblin, saveGoblin, eventTimezone, setEventTimezone }) {
+function GoblinDashboard({ goblin, setGoblin, saveGoblin, dirty, loading, eventTimezone, setEventTimezone }) {
   return (
     <>
       <div className="page-header">
@@ -740,10 +803,11 @@ function GoblinDashboard({ goblin, setGoblin, saveGoblin, eventTimezone, setEven
               ))}
             </select>
           </Field>
-          <button onClick={saveGoblin} className="btn btn-primary">Save configuration</button>
+          <button onClick={saveGoblin} disabled={loading || !dirty} className="btn btn-primary">{loading ? "Saving…" : dirty ? "Save configuration" : "All changes saved"}</button>
         </div>
       </div>
 
+      <div className="save-state-inline" role="status"><span className={`status-dot ${dirty ? "checking" : "online"}`} />{dirty ? "You have unsaved changes" : "Configuration is saved"}</div>
       <div className="goblin-toggles">
         <Toggle checked={goblin.goblinBuilderEnabled} label="Goblin Builder enabled" onChange={(checked) => setGoblin({ ...goblin, goblinBuilderEnabled: checked })} />
         <Toggle checked={goblin.goblinLabEnabled} label="Goblin Lab enabled" onChange={(checked) => setGoblin({ ...goblin, goblinLabEnabled: checked })} />
