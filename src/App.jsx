@@ -82,6 +82,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [savedCraftedSnapshot, setSavedCraftedSnapshot] = useState("");
   const [savedGoblinSnapshot, setSavedGoblinSnapshot] = useState("");
+  const [savedHammerJamSnapshot, setSavedHammerJamSnapshot] = useState("");
   const [expandedDefenses, setExpandedDefenses] = useState({});
   const [route, setRoute] = useState("crafted");
   const [craftedFilter, setCraftedFilter] = useState("all");
@@ -120,6 +121,7 @@ export default function App() {
   const craftedSnapshot = JSON.stringify({ metadata: craftedMetadata, event });
   const craftedDirty = Boolean(savedCraftedSnapshot) && craftedSnapshot !== savedCraftedSnapshot;
   const goblinDirty = Boolean(savedGoblinSnapshot) && goblin && JSON.stringify(goblin) !== savedGoblinSnapshot;
+  const hammerJamDirty = Boolean(savedHammerJamSnapshot) && hammerJam && JSON.stringify(hammerJam) !== savedHammerJamSnapshot;
   const notify = (message, kind = "success") => setToast({ message, kind, id: Date.now() });
   const includedCount = defenseEntries.filter(([id]) =>
     event.defenses?.includes(Number(id)),
@@ -153,6 +155,7 @@ export default function App() {
     try {
       const data = await requestJson(API_ROUTES.hammerJam.path);
       setHammerJam(data);
+      setSavedHammerJamSnapshot(JSON.stringify(data));
     } catch (error) {
       notify(`Could not load Hammer Jam config: ${error.message}`, "error");
     }
@@ -166,6 +169,7 @@ export default function App() {
         method: API_ROUTES.saveHammerJam.method,
                 body: JSON.stringify(hammerJam),
       });
+      setSavedHammerJamSnapshot(JSON.stringify(hammerJam));
       notify("Hammer Jam configuration saved.");
       await loadHammerJam();
     } catch (error) {
@@ -485,9 +489,9 @@ export default function App() {
 
           <div className="sidebar-footer">
             <div className="environment-card">
-              <div className="environment-label">Environment</div>
+              <div className="environment-label">API connection</div>
               <div className="environment-status">
-                <span className="status-dot online" /> Production
+                <span className={`status-dot ${apiStatus}`} /> {apiStatus === "checking" ? "Checking" : apiStatus === "online" ? "Reachable" : "Unavailable"}
               </div>
             </div>
           </div>
@@ -639,7 +643,8 @@ export default function App() {
 
                 <div className="save-container">
                   <div className="save-bar">
-                    <button onClick={saveCrafted} disabled={loading} className="btn btn-primary save-button">
+                    <div className={`save-status ${craftedDirty ? "is-dirty" : "is-clean"}`} role="status"><span className={`status-dot ${craftedDirty ? "checking" : "online"}`} />{craftedDirty ? "Unsaved changes" : savedCraftedSnapshot ? "All changes saved" : "Loading data"}</div>
+                    <button onClick={saveCrafted} disabled={loading || !craftedDirty} className="btn btn-primary save-button">
                       {loading ? "Saving…" : "Save changes"}
                     </button>
                   </div>
@@ -648,7 +653,7 @@ export default function App() {
             )}
 
             {route === "goblin" && goblin && <GoblinDashboard goblin={goblin} setGoblin={setGoblin} saveGoblin={saveGoblin} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
-            {route === "hammerJam" && hammerJam && <HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} />}
+            {route === "hammerJam" && hammerJam && <><div className="save-state-inline" role="status"><span className={`status-dot ${hammerJamDirty ? "checking" : "online"}`} />{hammerJamDirty ? "You have unsaved changes" : "Configuration is saved"}</div><HammerJamDashboard config={hammerJam} setConfig={setHammerJam} saveConfig={saveHammerJam} loading={loading} dirty={hammerJamDirty} eventTimezone={eventTimezone} setEventTimezone={setEventTimezone} /></>}
           </main>
         </div>
       </div>
