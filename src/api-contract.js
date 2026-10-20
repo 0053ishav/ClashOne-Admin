@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://clashwidget.online";
+export const API_BASE_URL = import.meta.env?.VITE_API_URL || "https://clashwidget.online";
 
 export const API_ROUTES = Object.freeze({
   health: { method: "GET", path: "/health", auth: "public" },
