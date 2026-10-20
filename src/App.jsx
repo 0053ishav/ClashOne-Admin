@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResourceType } from "./types/resource";
+import { API_BASE_URL, API_ROUTES, requestJson } from "./api-contract";
 
-const BASE_URL = "https://clashwidget.online";
 const CDN_URL = "https://cdn.clashwidget.online";
 const CRAFTED_PATH = "/v2/crafted";
 
@@ -119,12 +119,11 @@ export default function App() {
     setFetching(true);
     try {
       const [metadataRes, eventRes] = await Promise.all([
-        fetch(`${BASE_URL}/v2/metadata/crafted-defenses`),
-        fetch(`${BASE_URL}/v2/events/crafted-defenses-event`),
+        requestJson(API_ROUTES.craftedMetadata.path),
+        requestJson(API_ROUTES.craftedEvent.path),
       ]);
-      if (!metadataRes.ok || !eventRes.ok) throw new Error();
-      const metadata = await metadataRes.json();
-      const eventData = await eventRes.json();
+      const metadata = metadataRes;
+      const eventData = eventRes;
       setCraftedMetadata(normaliseMetadata(metadata));
       setEvent(eventData);
     } catch {
@@ -136,11 +135,8 @@ export default function App() {
 
   const loadGoblin = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/v2/events/goblin-config`, {
-        headers: { "x-admin-token": token },
-      });
-      if (!res.ok) throw new Error();
-      setGoblin(await res.json());
+      const data = await requestJson(API_ROUTES.goblinConfig.path);
+      setGoblin(data);
     } catch {
       alert("Failed to load Goblin config ❌");
     }
@@ -154,7 +150,7 @@ export default function App() {
   const checkApiHealth = async ({ silent = false } = {}) => {
     if (!silent) setApiStatus("checking");
     try {
-      const res = await fetch(`${BASE_URL}/health`, { cache: "no-store" });
+      const res = await fetch(`${API_BASE_URL}${API_ROUTES.health.path}`, { cache: "no-store" });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setApiStatus(data?.status === "ok" ? "online" : "offline");
@@ -197,13 +193,10 @@ export default function App() {
     const password = prompt("Enter admin password");
     if (!password) return;
     try {
-      const res = await fetch(`${BASE_URL}/v1/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const data = await requestJson(API_ROUTES.login.path, {
+        method: API_ROUTES.login.method,
         body: JSON.stringify({ password }),
       });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
       localStorage.setItem("admin-token", data.token);
       setToken(data.token);
     } catch {
@@ -302,30 +295,21 @@ export default function App() {
   const saveCrafted = async () => {
     setLoading(true);
     try {
-      // craftedMetadata is the complete metadata document loaded from
-      // /v2/metadata/crafted-defenses, so the admin API can safely write/merge
-      // the complete object. The event endpoint replaces the whole event file.
-      const metadataRes = await fetch(`${BASE_URL}/v2/admin/metadata/crafted-defenses`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-token": token,
-        },
+      // These are separate backend writes, not a transaction.
+      await requestJson(API_ROUTES.saveCraftedMetadata.path, {
+        method: API_ROUTES.saveCraftedMetadata.method,
+        headers: { "x-admin-token": token },
         body: JSON.stringify(craftedMetadata),
       });
-
-      if (!metadataRes.ok) throw new Error("Metadata save failed");
-
-      const eventRes = await fetch(`${BASE_URL}/v2/admin/events/crafted-defenses`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-token": token,
-        },
-        body: JSON.stringify(event),
-      });
-
-      if (!eventRes.ok) throw new Error("Event save failed");
+      try {
+        await requestJson(API_ROUTES.saveCraftedEvent.path, {
+          method: API_ROUTES.saveCraftedEvent.method,
+          headers: { "x-admin-token": token },
+          body: JSON.stringify(event),
+        });
+      } catch (error) {
+        throw new Error("Metadata saved, but event save failed: " + error.message + ". Reload data before retrying.");
+      }
       alert("Crafted metadata + event saved ✅");
     } catch (error) {
       alert(`${error.message} ❌`);
@@ -348,20 +332,17 @@ export default function App() {
 
   const saveGoblin = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/v2/admin/events/goblin`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-token": token,
-        },
+      await requestJson(API_ROUTES.saveGoblinConfig.path, {
+        method: API_ROUTES.saveGoblinConfig.method,
+        headers: { "x-admin-token": token },
         body: JSON.stringify({
           ...goblin,
-          version: (goblin.version || 0) + 1,
+          // Version increments must be performed by the backend.
           workForHireEvents: goblin.workForHireEvents || [],
         }),
       });
-      if (!res.ok) throw new Error();
       alert("Saved Goblin Config ✅");
+      await loadGoblin();
     } catch {
       alert("Save Failed ❌");
     }
